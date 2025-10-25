@@ -2,41 +2,28 @@ pipeline {
     agent any
 
     environment {
-        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
-        PATH = "${env.JAVA_HOME}\\bin;%PATH%"
-        ANDROID_HOME = "C:\\Users\\%USERNAME%\\AppData\\Local\\Android\\Sdk"
-        PATH = "${env.ANDROID_HOME}\\tools;${env.ANDROID_HOME}\\platform-tools;%PATH%"
+        ANDROID_HOME = "C:\\Users\\Administrator\\AppData\\Local\\Android\\Sdk"
+        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
+        PATH = "${ANDROID_HOME}\\tools;${ANDROID_HOME}\\platform-tools;${env.PATH}"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
+                git branch: 'main', url: 'https://github.com/username/NoteApp.git'
             }
         }
 
-        stage('Build APK') {
+        stage('Build') {
             steps {
-                bat '''
-                cd %WORKSPACE%
-                gradlew clean assembleDebug --stacktrace
-                '''
+                bat 'gradlew clean assembleDebug'
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: '**/app/build/outputs/apk/debug/*.apk', fingerprint: true
+                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true
             }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ Build sukses! File APK telah diarsipkan oleh Jenkins.'
-        }
-        failure {
-            echo '❌ Build gagal! Periksa log error pada Console Output Jenkins.'
         }
     }
 }
