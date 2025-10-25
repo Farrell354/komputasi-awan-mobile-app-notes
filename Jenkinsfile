@@ -13,6 +13,15 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
             }
         }
+        stage('Build APK via Docker') {
+    steps {
+        script {
+            docker.image('android-build').inside {
+                sh './gradlew clean assembleDebug --no-daemon'
+            }
+        }
+    }
+}
 
         stage('Build Docker Image') {
             steps {
