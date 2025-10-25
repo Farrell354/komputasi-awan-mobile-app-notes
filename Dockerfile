@@ -12,31 +12,28 @@ ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-too
 # Buat folder SDK
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools
 
-# Unduh dan pasang command line tools Android terbaru
+# Unduh dan pasang Android Command Line Tools
 RUN cd ${ANDROID_HOME}/cmdline-tools && \
     wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip && \
     unzip tools.zip && rm tools.zip && \
     mv cmdline-tools latest
 
-# Terima semua lisensi SDK
-RUN yes | sdkmanager --licenses || true
+# Update dan install komponen SDK yang diperlukan
+RUN yes | sdkmanager --sdk_root=${ANDROID_HOME} --licenses || true
+RUN sdkmanager --sdk_root=${ANDROID_HOME} --update
+RUN sdkmanager --sdk_root=${ANDROID_HOME} "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-# Instal build-tools dan platform Android
-RUN sdkmanager --update
-RUN sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-# Atur direktori kerja
+# Atur direktori kerja di dalam container
 WORKDIR /app
 
-# Salin seluruh kode proyek
+# Salin seluruh kode proyek ke dalam container
 COPY . .
 
-# Pastikan Gradle wrapper bisa dieksekusi
+# Pastikan Gradle wrapper dapat dieksekusi
 RUN chmod +x gradlew
 
-# Jalankan build debug
+# Jalankan proses build debug APK
 RUN ./gradlew clean assembleDebug --no-daemon
 
 # Tampilkan hasil build
-CMD ["bash", "-c", "ls -lah app/build/outputs/apk/debug && echo '✅ Build selesai, file APK tersedia.'"]
-
+CMD ["bash", "-c", "ls -lah app/build/outputs/apk/debug && echo '✅ Build selesai! File APK tersedia di folder output.'"]
