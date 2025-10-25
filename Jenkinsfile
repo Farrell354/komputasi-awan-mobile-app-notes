@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "android-builder"
-        PATH = "C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Program Files\\Docker"
+        // Path ke Android SDK dan Gradle wrapper
+        ANDROID_HOME = "C:\\Users\\%USERNAME%\\AppData\\Local\\Android\\Sdk"
+        PATH = "${env.ANDROID_HOME}\\tools;${env.ANDROID_HOME}\\platform-tools;%PATH%"
     }
 
     stages {
@@ -13,18 +14,12 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image (Android Builder)') {
-            steps {
-                bat 'docker build -t %IMAGE_NAME% .'
-            }
-        }
-
-        stage('Build APK Inside Docker') {
+        stage('Build APK') {
             steps {
                 bat '''
-                docker run --rm ^
-                -v "%cd%:/app" ^
-                %IMAGE_NAME% bash -c "cd /app && chmod +x gradlew && ./gradlew clean assembleDebug --stacktrace"
+                cd %WORKSPACE%
+                chmod +x gradlew
+                gradlew clean assembleDebug --stacktrace
                 '''
             }
         }
@@ -45,3 +40,4 @@ pipeline {
         }
     }
 }
+
