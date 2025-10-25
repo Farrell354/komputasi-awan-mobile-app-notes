@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Path ke Android SDK dan Gradle wrapper
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17"
+        PATH = "${env.JAVA_HOME}\\bin;%PATH%"
         ANDROID_HOME = "C:\\Users\\%USERNAME%\\AppData\\Local\\Android\\Sdk"
         PATH = "${env.ANDROID_HOME}\\tools;${env.ANDROID_HOME}\\platform-tools;%PATH%"
     }
@@ -18,7 +19,6 @@ pipeline {
             steps {
                 bat '''
                 cd %WORKSPACE%
-                chmod +x gradlew
                 gradlew clean assembleDebug --stacktrace
                 '''
             }
@@ -40,4 +40,3 @@ pipeline {
         }
     }
 }
-
