@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "android-builder"
-        CONTAINER_NAME = "android-build-container"
+        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
+        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
+        PATH = "${ANDROID_HOME}\\cmdline-tools\\latest\\bin;${ANDROID_HOME}\\platform-tools;${env.PATH}"
     }
 
     stages {
+
         stage('Checkout Source') {
             steps {
                 echo "🔄 Mengambil source code dari GitHub..."
@@ -14,35 +16,37 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Cek Gradle Wrapper') {
             steps {
-                echo "🐳 Membangun Docker image Android..."
-                bat "docker build -t ${IMAGE_NAME} ."
+                echo "🧩 Mengecek file gradlew..."
+                bat 'if exist gradlew.bat (echo ✅ gradlew ditemukan) else (echo ❌ gradlew tidak ditemukan!)'
             }
         }
 
-        stage('Run Build in Docker') {
+        stage('Build APK Debug') {
             steps {
-                echo "🏗️ Menjalankan build di dalam container..."
-                bat """
-                    docker run --rm ^
-                    -v "%CD%":/workspace ^
-                    -w /workspace ^
-                    ${IMAGE_NAME} bash -c "chmod +x gradlew && ./gradlew clean assembleDebug --no-daemon --stacktrace || true"
-                """
+                echo "🏗️ Membuild file APK Debug..."
+                bat '.\\gradlew.bat clean assembleDebug --stacktrace'
             }
         }
 
-        stage('List Artifacts') {
+        stage('Unit Test (Optional)') {
+            steps {
+                echo "🧪 Menjalankan unit test..."
+                bat '.\\gradlew.bat testDebugUnitTest'
+            }
+        }
+
+        stage('List APK') {
             steps {
                 echo "📂 Menampilkan hasil build..."
-                bat 'dir app\\build\\outputs\\apk\\debug || echo "❌ File APK tidak ditemukan!"'
+                bat 'dir app\\build\\outputs\\apk\\debug'
             }
         }
 
         stage('Archive APK') {
             steps {
-                echo "📦 Mengarsipkan hasil build APK..."
+                echo "📦 Mengarsipkan file APK hasil build..."
                 archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true, allowEmptyArchive: false
             }
         }
@@ -50,10 +54,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build Sukses! File APK berhasil diarsipkan oleh Jenkins.'
+            echo '✅ Build sukses! File APK telah diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build Gagal! Periksa log error dari tahap Run Build in Docker.'
+            echo '❌ Build gagal! Cek log error di console Jenkins.'
         }
     }
 }
