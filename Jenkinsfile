@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "android-builder"
+        CONTAINER_NAME = "android-build-container"
     }
 
     stages {
@@ -15,33 +16,33 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo "🧱 Membangun Docker image untuk Android build..."
+                echo "🐳 Membangun Docker image Android..."
                 bat "docker build -t ${IMAGE_NAME} ."
             }
         }
 
         stage('Run Build in Docker') {
             steps {
-                echo "🚀 Menjalankan build APK di dalam container..."
+                echo "🏗️ Menjalankan build di dalam container..."
                 bat """
                     docker run --rm ^
-                    -v "%CD%":/app ^
-                    -w /app ^
-                    ${IMAGE_NAME} bash -c "./gradlew clean assembleDebug --no-daemon || true"
+                    -v "%CD%":/workspace ^
+                    -w /workspace ^
+                    ${IMAGE_NAME} bash -c "chmod +x gradlew && ./gradlew clean assembleDebug --no-daemon --stacktrace || true"
                 """
             }
         }
 
         stage('List Artifacts') {
             steps {
-                echo "📂 Mengecek file hasil build..."
-                bat 'dir app\\build\\outputs\\apk\\debug'
+                echo "📂 Menampilkan hasil build..."
+                bat 'dir app\\build\\outputs\\apk\\debug || echo "❌ File APK tidak ditemukan!"'
             }
         }
 
         stage('Archive APK') {
             steps {
-                echo "📦 Mengarsipkan file APK hasil build..."
+                echo "📦 Mengarsipkan hasil build APK..."
                 archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true, allowEmptyArchive: false
             }
         }
@@ -49,10 +50,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build sukses! File APK sudah diarsipkan oleh Jenkins.'
+            echo '✅ Build Sukses! File APK berhasil diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build gagal! Cek log error pada Console Output Jenkins.'
+            echo '❌ Build Gagal! Periksa log error dari tahap Run Build in Docker.'
         }
     }
 }
