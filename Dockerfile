@@ -39,3 +39,10 @@ RUN ./gradlew clean assembleDebug --no-daemon
 
 # Tampilkan hasil build
 CMD ["bash", "-c", "ls -lah app/build/outputs/apk/debug && echo '✅ Build selesai, file APK tersedia.'"]
+# Pastikan kita menggunakan Linux gradlew
+RUN ls -lah && \
+    if [ -f gradlew.bat ]; then echo "❌ gradlew.bat ditemukan, gunakan gradlew (Linux)!"; exit 1; fi
+
+# Build APK
+RUN chmod +x ./gradlew || echo "gradlew sudah executable" && \
+    ./gradlew clean assembleDebug --no-daemon || (echo "⚠️ Gagal build, cek error di atas" && exit 1)
