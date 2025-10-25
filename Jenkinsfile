@@ -2,57 +2,55 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'android-notes-builder:latest'
-        APK_OUTPUT = 'app/build/outputs/apk/debug/app-debug.apk'
+        IMAGE_NAME = "android-builder"
+        CONTAINER_NAME = "android_build_container"
     }
 
     stages {
         stage('Checkout Source') {
             steps {
-                echo "🔄 Mengambil source code dari GitHub..."
                 git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
             }
         }
-        stage('Build APK via Docker') {
-    steps {
-        script {
-            docker.image('android-build').inside {
-                sh './gradlew clean assembleDebug --no-daemon'
-            }
-        }
-    }
-}
 
         stage('Build Docker Image') {
             steps {
-                echo "🐳 Membangun Docker image untuk Android build..."
-                bat 'docker build -t android-notes-builder .'
+                script {
+                    echo "🧱 Membangun Docker image Android build environment..."
+                    bat "docker build -t ${IMAGE_NAME} ."
+                }
             }
         }
 
         stage('Run Build in Docker') {
             steps {
-                echo "🏗️ Menjalankan proses build APK di dalam container Docker..."
-                // Jalankan container & mount workspace agar hasil APK muncul di host
-                bat 'docker run --rm -v "%cd%":/app -w /app android-notes-builder bash -c "./gradlew clean assembleDebug --no-daemon --stacktrace"'
+                script {
+                    echo "🚀 Menjalankan build APK di dalam container..."
+                    bat """
+                        docker run --rm ^
+                        -v %cd%:/app ^
+                        -w /app ^
+                        ${IMAGE_NAME} ./gradlew clean assembleDebug --no-daemon
+                    """
+                }
             }
         }
 
         stage('Archive APK') {
             steps {
-                echo "📦 Mengarsipkan file APK hasil build..."
-                archiveArtifacts artifacts: '**/build/outputs/apk/debug/*.apk', fingerprint: true
+                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build Sukses! File APK sudah dibuat dan diarsipkan oleh Jenkins.'
+            echo '✅ Build sukses! APK sudah diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build Gagal! Periksa log error Docker di Console Output Jenkins.'
+            echo '❌ Build gagal! Cek log error di konsol Jenkins.'
         }
     }
 }
+
 
