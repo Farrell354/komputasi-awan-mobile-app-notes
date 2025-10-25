@@ -1,34 +1,42 @@
-# Gunakan image dasar Android SDK
-FROM openjdk:17-jdk
+# Gunakan base image dengan Java 17
+FROM openjdk:17-jdk-slim
 
 # Install dependencies dasar
-RUN apt-get update && apt-get install -y \
-    wget unzip git curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget unzip git curl zip && \
+    rm -rf /var/lib/apt/lists/*
 
-# Pasang Android SDK
-ENV ANDROID_HOME /usr/local/android-sdk
-RUN mkdir -p ${ANDROID_HOME} && \
-    cd ${ANDROID_HOME} && \
-    wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip && \
-    unzip tools.zip -d ${ANDROID_HOME}/cmdline-tools && \
-    rm tools.zip && \
-    mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest
+# Tentukan lokasi Android SDK
+ENV ANDROID_HOME=/usr/local/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
 
-# Tambahkan PATH
-ENV PATH=$PATH:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
+# Buat folder SDK
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools
 
-# Install SDK platform dan build-tools
-RUN yes | sdkmanager --licenses
+# Unduh dan pasang command line tools Android terbaru
+RUN cd ${ANDROID_HOME}/cmdline-tools && \
+    wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip && \
+    unzip tools.zip && rm tools.zip && \
+    mv cmdline-tools latest
+
+# Terima semua lisensi SDK
+RUN yes | sdkmanager --licenses || true
+
+# Instal build-tools dan platform Android
+RUN sdkmanager --update
 RUN sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-# Copy source code
+# Atur direktori kerja
 WORKDIR /app
+
+# Salin seluruh kode proyek
 COPY . .
 
-# Build APK
+# Pastikan Gradle wrapper bisa dieksekusi
 RUN chmod +x gradlew
-RUN ./gradlew clean assembleDebug
 
-# Lokasi output
-CMD ["bash", "-c", "ls -lah app/build/outputs/apk/debug && echo '✅ Build Selesai'"]
+# Jalankan build debug
+RUN ./gradlew clean assembleDebug --no-daemon
+
+# Tampilkan hasil build
+CMD ["bash", "-c", "ls -lah app/build/outputs/apk/debug && echo '✅ Build selesai, file APK tersedia.'"]
+
