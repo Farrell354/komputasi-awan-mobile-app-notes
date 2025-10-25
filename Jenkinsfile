@@ -2,13 +2,11 @@ pipeline {
     agent any
 
     environment {
-        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
-        PATH = "${ANDROID_HOME}\\tools;${ANDROID_HOME}\\tools\\bin;${ANDROID_HOME}\\platform-tools;${env.PATH}"
+        DOCKER_IMAGE = 'android-notes-builder:latest'
+        APK_OUTPUT = 'app/build/outputs/apk/debug/app-debug.apk'
     }
 
     stages {
-
         stage('Checkout Source') {
             steps {
                 echo "🔄 Mengambil source code dari GitHub..."
@@ -16,24 +14,18 @@ pipeline {
             }
         }
 
-        stage('Gradle Wrapper Permission') {
+        stage('Build Docker Image') {
             steps {
-                echo "🧩 Mengecek akses eksekusi gradlew..."
-                bat 'if not exist gradlew.bat (echo ❌ gradlew tidak ditemukan!) else (echo ✅ gradlew ditemukan)'
+                echo "🐳 Membangun Docker image untuk Android build..."
+                bat 'docker build -t android-notes-builder .'
             }
         }
 
-        stage('Build APK') {
+        stage('Run Build in Docker') {
             steps {
-                echo "🏗️  Membuild APK Debug..."
-                bat '.\\gradlew.bat clean assembleDebug --stacktrace'
-            }
-        }
-
-        stage('Unit Test (Optional)') {
-            steps {
-                echo "🧪 Menjalankan unit test..."
-                bat '.\\gradlew.bat testDebugUnitTest'
+                echo "🏗️ Menjalankan proses build APK di dalam container Docker..."
+                // Jalankan container & mount workspace agar hasil APK muncul di host
+                bat 'docker run --rm -v "%cd%":/app -w /app android-notes-builder bash -c "./gradlew clean assembleDebug --no-daemon --stacktrace"'
             }
         }
 
@@ -47,10 +39,11 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build Sukses! File APK sudah diarsipkan oleh Jenkins.'
+            echo '✅ Build Sukses! File APK sudah dibuat dan diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build Gagal! Periksa log error pada Console Output Jenkins.'
+            echo '❌ Build Gagal! Periksa log error Docker di Console Output Jenkins.'
         }
     }
 }
+
