@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "kompu-mobile-notes"
-        DOCKERHUB_USER = "farelmario"
-        DOCKERHUB_CREDENTIALS = "dockerhub-credentials"
+        IMAGE_NAME = "android-builder"
+        PATH = "C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Program Files\\Docker"
     }
 
     stages {
@@ -22,36 +21,27 @@ pipeline {
 
         stage('Build APK Inside Docker') {
             steps {
-                bat 'docker run --rm -v %CD%:/app -w /app %IMAGE_NAME% bash -c "chmod +x gradlew && ./gradlew clean assembleDebug --no-daemon --stacktrace"'
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    bat """
-                        docker login -u %USER% -p %PASS%
-                        docker tag %IMAGE_NAME% %DOCKERHUB_USER%/%IMAGE_NAME%:latest
-                        docker push %DOCKERHUB_USER%/%IMAGE_NAME%:latest
-                    """
-                }
+                bat '''
+                docker run --rm ^
+                -v "%cd%:/app" ^
+                %IMAGE_NAME% bash -c "cd /app && chmod +x gradlew && ./gradlew clean assembleDebug --stacktrace"
+                '''
             }
         }
 
         stage('Archive APK') {
             steps {
-                bat 'dir app\\build\\outputs\\apk\\debug'
-                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true
+                archiveArtifacts artifacts: '**/app/build/outputs/apk/debug/*.apk', fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build sukses! APK dan image sudah di-push ke Docker Hub.'
+            echo '✅ Build sukses! File APK telah diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build gagal. Cek log error pada console Jenkins.'
+            echo '❌ Build gagal! Periksa log error pada Console Output Jenkins.'
         }
     }
 }
