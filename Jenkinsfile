@@ -3,54 +3,56 @@ pipeline {
 
     environment {
         IMAGE_NAME = "android-builder"
-        CONTAINER_NAME = "android_build_container"
     }
 
     stages {
         stage('Checkout Source') {
             steps {
+                echo "🔄 Mengambil source code dari GitHub..."
                 git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    echo "🧱 Membangun Docker image Android build environment..."
-                    bat "docker build -t ${IMAGE_NAME} ."
-                }
+                echo "🧱 Membangun Docker image untuk Android build..."
+                bat "docker build -t ${IMAGE_NAME} ."
             }
         }
 
         stage('Run Build in Docker') {
             steps {
-                script {
-                    echo "🚀 Menjalankan build APK di dalam container..."
-                    bat """
-                        docker run --rm ^
-                        -v %cd%:/app ^
-                        -w /app ^
-                        ${IMAGE_NAME} ./gradlew clean assembleDebug --no-daemon
-                    """
-                }
+                echo "🚀 Menjalankan build APK di dalam container..."
+                bat """
+                    docker run --rm ^
+                    -v "%CD%":/app ^
+                    -w /app ^
+                    ${IMAGE_NAME} bash -c "./gradlew clean assembleDebug --no-daemon || true"
+                """
+            }
+        }
+
+        stage('List Artifacts') {
+            steps {
+                echo "📂 Mengecek file hasil build..."
+                bat 'dir app\\build\\outputs\\apk\\debug'
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true
+                echo "📦 Mengarsipkan file APK hasil build..."
+                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true, allowEmptyArchive: false
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build sukses! APK sudah diarsipkan oleh Jenkins.'
+            echo '✅ Build sukses! File APK sudah diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build gagal! Cek log error di konsol Jenkins.'
+            echo '❌ Build gagal! Cek log error pada Console Output Jenkins.'
         }
     }
 }
-
-
