@@ -1,10 +1,9 @@
 pipeline {
-    agent any
-
-    environment {
-        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
-        PATH = "${ANDROID_HOME}\\tools;${ANDROID_HOME}\\platform-tools;${env.PATH}"
+    agent {
+        dockerfile {
+            filename 'Dockerfile'
+            args '-u root:root'
+        }
     }
 
     stages {
@@ -16,13 +15,7 @@ pipeline {
 
         stage('Build APK') {
             steps {
-                bat 'gradlew clean assembleDebug'
-            }
-        }
-
-        stage('Test (Optional)') {
-            steps {
-                bat 'gradlew testDebugUnitTest'
+                sh './gradlew clean assembleDebug'
             }
         }
 
@@ -35,10 +28,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build Sukses! APK sudah diarsipkan oleh Jenkins.'
+            echo '✅ Build berhasil! File APK sudah tersedia di Jenkins artifacts.'
         }
         failure {
-            echo '❌ Build Gagal! Cek log error pada konsol Jenkins.'
+            echo '❌ Build gagal! Periksa error log di konsol Jenkins.'
         }
     }
 }
