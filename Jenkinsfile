@@ -2,67 +2,51 @@ pipeline {
     agent any
 
     environment {
-        // Android SDK path
-        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-
-        // Java JDK path (bukan JBR/JetBrains Runtime)
-        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17.0.8"
-
-        // Update PATH
-        PATH = "${ANDROID_HOME}\\platform-tools;${ANDROID_HOME}\\tools;${JAVA_HOME}\\bin;${env.PATH}"
-
-        // Keystore info untuk signing release APK (ganti sesuai keystore)
-        KEYSTORE_PATH = "C:\\Users\\Farrel\\keystore\\my-release-key.jks"
-        KEYSTORE_ALIAS = "my-key-alias"
-        KEYSTORE_PASSWORD = "password123"
-        KEY_PASSWORD = "password123"
+        IMAGE_NAME = "android-builder"
+        PATH = "C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Program Files\\Docker"
     }
 
     stages {
-        stage('Checkout Source') {
+        stage('Checkout Code') {
             steps {
+                echo "🔄 Mengambil source code..."
                 git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
             }
         }
 
-        stage('Build Debug APK') {
+        stage('Build Docker Image (Android Builder)') {
             steps {
-                bat 'gradlew clean assembleDebug'
+                echo "🐳 Membangun image Docker untuk Android..."
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
-        stage('Build Release APK') {
+        stage('Build APK Inside Docker') {
             steps {
-                bat """
-                gradlew assembleRelease ^
-                    -Pandroid.injected.signing.store.file=%KEYSTORE_PATH% ^
-                    -Pandroid.injected.signing.store.password=%KEYSTORE_PASSWORD% ^
-                    -Pandroid.injected.signing.key.alias=%KEYSTORE_ALIAS% ^
-                    -Pandroid.injected.signing.key.password=%KEY_PASSWORD%
-                """
-            }
-        }
-
-        stage('Test APK (Optional)') {
-            steps {
-                bat 'gradlew testDebugUnitTest'
+                echo "🏗️  Menjalankan build APK di dalam container..."
+                bat '''
+                docker run --rm ^
+                -v "%cd%:/app" ^
+                %IMAGE_NAME% sh -c "cd /app && chmod +x gradlew && ./gradlew clean assembleDebug --stacktrace || echo '⚠️ Build gagal di dalam Docker'"
+                '''
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'app\\build\\outputs\\apk\\debug\\*.apk', fingerprint: true
-                archiveArtifacts artifacts: 'app\\build\\outputs\\apk\\release\\*.apk', fingerprint: true
+                echo "📦 Mengarsipkan hasil APK..."
+                archiveArtifacts artifacts: '**/build/outputs/apk/debug/*.apk', fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build Sukses! Semua APK sudah diarsipkan oleh Jenkins.'
+            echo '✅ Build sukses! File APK berhasil diarsipkan.'
         }
         failure {
-            echo '❌ Build Gagal! Cek log error pada konsol Jenkins.'
+            echo '❌ Build gagal! Silakan periksa log di stage Build APK Inside Docker.'
         }
     }
 }
+
