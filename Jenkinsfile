@@ -2,62 +2,67 @@ pipeline {
     agent any
 
     environment {
+        // Android SDK path
         ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
-        PATH = "${ANDROID_HOME}\\cmdline-tools\\latest\\bin;${ANDROID_HOME}\\platform-tools;${env.PATH}"
+
+        // Java JDK path (bukan JBR/JetBrains Runtime)
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17.0.8"
+
+        // Update PATH
+        PATH = "${ANDROID_HOME}\\tools;${ANDROID_HOME}\\platform-tools;${JAVA_HOME}\\bin;${env.PATH}"
+
+        // Keystore info untuk signing release APK (ganti sesuai keystore)
+        KEYSTORE_PATH = "C:\\Users\\Farrel\\keystore\\my-release-key.jks"
+        KEYSTORE_ALIAS = "my-key-alias"
+        KEYSTORE_PASSWORD = "password123"
+        KEY_PASSWORD = "password123"
     }
 
     stages {
-
         stage('Checkout Source') {
             steps {
-                echo "🔄 Mengambil source code dari GitHub..."
                 git branch: 'main', url: 'https://github.com/Farrell354/komputasi-awan-mobile-app-notes.git'
             }
         }
 
-        stage('Cek Gradle Wrapper') {
+        stage('Build Debug APK') {
             steps {
-                echo "🧩 Mengecek file gradlew..."
-                bat 'if exist gradlew.bat (echo ✅ gradlew ditemukan) else (echo ❌ gradlew tidak ditemukan!)'
+                bat 'gradlew clean assembleDebug'
             }
         }
 
-        stage('Build APK Debug') {
+        stage('Build Release APK') {
             steps {
-                echo "🏗️ Membuild file APK Debug..."
-                bat '.\\gradlew.bat clean assembleDebug --stacktrace'
+                bat """
+                gradlew assembleRelease ^
+                    -Pandroid.injected.signing.store.file=%KEYSTORE_PATH% ^
+                    -Pandroid.injected.signing.store.password=%KEYSTORE_PASSWORD% ^
+                    -Pandroid.injected.signing.key.alias=%KEYSTORE_ALIAS% ^
+                    -Pandroid.injected.signing.key.password=%KEY_PASSWORD%
+                """
             }
         }
 
-        stage('Unit Test (Optional)') {
+        stage('Test APK (Optional)') {
             steps {
-                echo "🧪 Menjalankan unit test..."
-                bat '.\\gradlew.bat testDebugUnitTest'
-            }
-        }
-
-        stage('List APK') {
-            steps {
-                echo "📂 Menampilkan hasil build..."
-                bat 'dir app\\build\\outputs\\apk\\debug'
+                bat 'gradlew testDebugUnitTest'
             }
         }
 
         stage('Archive APK') {
             steps {
-                echo "📦 Mengarsipkan file APK hasil build..."
-                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true, allowEmptyArchive: false
+                archiveArtifacts artifacts: 'app\\build\\outputs\\apk\\debug\\*.apk', fingerprint: true
+                archiveArtifacts artifacts: 'app\\build\\outputs\\apk\\release\\*.apk', fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo '✅ Build sukses! File APK telah diarsipkan oleh Jenkins.'
+            echo '✅ Build Sukses! Semua APK sudah diarsipkan oleh Jenkins.'
         }
         failure {
-            echo '❌ Build gagal! Cek log error di console Jenkins.'
+            echo '❌ Build Gagal! Cek log error pada konsol Jenkins.'
         }
     }
 }
