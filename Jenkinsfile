@@ -16,8 +16,9 @@ pipeline {
         stage('Build APK in Docker') {
             steps {
                 script {
-                    docker.image('android-builder:latest').inside {
-                        bat 'gradlew clean assembleDebug'
+                    docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
+                        sh 'chmod +x gradlew'
+                        sh './gradlew clean assembleDebug'
                     }
                 }
             }
@@ -26,8 +27,8 @@ pipeline {
         stage('Test (Optional)') {
             steps {
                 script {
-                    docker.image('android-builder:latest').inside {
-                        bat 'gradlew testDebugUnitTest'
+                    docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
+                        sh './gradlew testDebugUnitTest'
                     }
                 }
             }
@@ -49,4 +50,3 @@ pipeline {
         }
     }
 }
-
