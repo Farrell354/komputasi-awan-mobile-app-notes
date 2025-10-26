@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
-        PATH = "${ANDROID_HOME}\\tools;${ANDROID_HOME}\\platform-tools;${env.PATH}"
+        JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
+        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
@@ -14,15 +13,23 @@ pipeline {
             }
         }
 
-        stage('Build APK') {
+        stage('Build APK in Docker') {
             steps {
-                bat 'gradlew clean assembleDebug'
+                script {
+                    docker.image('android-builder:latest').inside {
+                        bat 'gradlew clean assembleDebug'
+                    }
+                }
             }
         }
 
         stage('Test (Optional)') {
             steps {
-                bat 'gradlew testDebugUnitTest'
+                script {
+                    docker.image('android-builder:latest').inside {
+                        bat 'gradlew testDebugUnitTest'
+                    }
+                }
             }
         }
 
@@ -42,3 +49,4 @@ pipeline {
         }
     }
 }
+
