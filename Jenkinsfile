@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -17,18 +18,20 @@ pipeline {
             steps {
                 script {
                     docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
-                        sh 'chmod +x gradlew'
-                        sh './gradlew clean assembleDebug'
+                        sh 'pwd'
+                        sh 'ls -R'                            // Debug: cek file dan folder
+                        sh 'chmod +x gradlew'                  // pastikan gradlew executable
+                        sh './gradlew clean assembleDebug'     // build APK
                     }
                 }
             }
         }
 
-        stage('Test (Optional)') {
+        stage('Test APK (Optional)') {
             steps {
                 script {
                     docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
-                        sh './gradlew testDebugUnitTest'
+                        sh './gradlew testDebugUnitTest'      // run unit test (opsional)
                     }
                 }
             }
