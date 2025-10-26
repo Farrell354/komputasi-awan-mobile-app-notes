@@ -1,10 +1,10 @@
-
 pipeline {
     agent any
 
     environment {
-        JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
+        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
+        PATH = "${ANDROID_HOME}\\platform-tools;${ANDROID_HOME}\\tools;${JAVA_HOME}\\bin;${env.PATH}"
     }
 
     stages {
@@ -14,32 +14,21 @@ pipeline {
             }
         }
 
-        stage('Build APK in Docker') {
+        stage('Build APK') {
             steps {
-                script {
-                    docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
-                        sh 'pwd'
-                        sh 'ls -R'                            // Debug: cek file dan folder
-                        sh 'chmod +x gradlew'                  // pastikan gradlew executable
-                        sh './gradlew clean assembleDebug'     // build APK
-                    }
-                }
+                bat 'gradlew clean assembleDebug'
             }
         }
 
         stage('Test APK (Optional)') {
             steps {
-                script {
-                    docker.image('android-builder:latest').inside("-v ${env.WORKSPACE}:/workspace") {
-                        sh './gradlew testDebugUnitTest'      // run unit test (opsional)
-                    }
-                }
+                bat 'gradlew testDebugUnitTest'
             }
         }
 
         stage('Archive APK') {
             steps {
-                archiveArtifacts artifacts: 'app/build/outputs/apk/debug/*.apk', fingerprint: true
+                archiveArtifacts artifacts: 'app\\build\\outputs\\apk\\debug\\*.apk', fingerprint: true
             }
         }
     }
