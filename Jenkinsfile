@@ -2,11 +2,16 @@ pipeline {
     agent any
 
     environment {
+        // Android SDK path
         ANDROID_HOME = "C:\\Users\\Farrel\\AppData\\Local\\Android\\Sdk"
-        JAVA_HOME = "C:\\Program Files\\Android\\Android Studio\\jbr"
+
+        // Java JDK path (bukan JBR/JetBrains Runtime)
+        JAVA_HOME = "C:\\Program Files\\Java\\jdk-17.0.8"
+
+        // Update PATH
         PATH = "${ANDROID_HOME}\\platform-tools;${ANDROID_HOME}\\tools;${JAVA_HOME}\\bin;${env.PATH}"
-        
-        // Keystore info (ganti sesuai keystore project)
+
+        // Keystore info untuk signing release APK (ganti sesuai keystore)
         KEYSTORE_PATH = "C:\\Users\\Farrel\\keystore\\my-release-key.jks"
         KEYSTORE_ALIAS = "my-key-alias"
         KEYSTORE_PASSWORD = "password123"
@@ -28,16 +33,13 @@ pipeline {
 
         stage('Build Release APK') {
             steps {
-                script {
-                    // Jika ingin sign release APK otomatis
-                    bat """
-                    gradlew assembleRelease \
-                        -Pandroid.injected.signing.store.file=%KEYSTORE_PATH% \
-                        -Pandroid.injected.signing.store.password=%KEYSTORE_PASSWORD% \
-                        -Pandroid.injected.signing.key.alias=%KEYSTORE_ALIAS% \
-                        -Pandroid.injected.signing.key.password=%KEY_PASSWORD%
-                    """
-                }
+                bat """
+                gradlew assembleRelease ^
+                    -Pandroid.injected.signing.store.file=%KEYSTORE_PATH% ^
+                    -Pandroid.injected.signing.store.password=%KEYSTORE_PASSWORD% ^
+                    -Pandroid.injected.signing.key.alias=%KEYSTORE_ALIAS% ^
+                    -Pandroid.injected.signing.key.password=%KEY_PASSWORD%
+                """
             }
         }
 
